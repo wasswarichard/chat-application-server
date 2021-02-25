@@ -1,13 +1,11 @@
 const pool = require('../config/database');
 const url  = require('url');
-// const _ = require('underscore');
 
 const users = [];
 
 const addUser = ({id, name, room}) => {
     name = name.trim().toLowerCase();
     room = room.trim().toLowerCase();
-
     const existingUser = users.find((user) => user.room === room && user.name === name);
     if(existingUser){
         return {error: 'Username is taken'}
@@ -16,7 +14,41 @@ const addUser = ({id, name, room}) => {
     users.push(user);
     return {user}
 }
-
+const getRoomMessages = (user_room) => {
+    return new Promise((resolve, reject) => {
+        try{
+            pool.query('SELECT * FROM room WHERE user_room = $1', [user_room.user_room], (error, results) => {
+                if(error){
+                    return reject(error)
+                }
+                return resolve(results.rows);
+            })
+        } catch (error){
+            return reject(error)
+        }
+    });
+};
+const loginUser = async (req, res) =>{
+    const Users =  await pool.query('SELECT * FROM users');
+    const url_parts =  url.parse(req.url);
+    const query = url_parts.query;
+    const search_words =  [];
+    query && query.split('&').forEach(value => search_words.push(value.split('=')[1]));
+    const user =  Users.rows.filter(row => {
+        return row.user_name === search_words[0]
+    });
+    if(user.length === 0){
+        return res.json({
+            loginSuccess: false,
+            message: "Authentication failed, username not found"
+        });
+    }else{
+        if(user[0].user_room !== search_words[1]){
+            return res.json({ loginSuccess: false, message: "Wrong chat room" });
+        }
+        return res.json({ loginSuccess: true});
+    }
+}
 const postUser = async (req, res) => {
     const Users =  await pool.query('SELECT * FROM users');
     const url_parts =  url.parse(req.url);
@@ -42,35 +74,15 @@ const postUser = async (req, res) => {
     }
 }
 
-const getMessage = async (req, res) => {
-    const id = parseInt(req.params.id);
-    const response = await pool.query('SELECT * FROM messages WHERE id = $1', [id]);
-    res.json(response.rows);
+const postMessage =  ({user_room, message, sent_by} ) => {
+    pool.query('INSERT INTO room (user_room, message, sent_by, time_stamp) VALUES ($1, $2, $3, $4)', [user_room, message, sent_by, new Date()] );
+    // pool.end();
 };
 
-const loginUser = async (req, res) =>{
-    const Users =  await pool.query('SELECT * FROM users');
-    const url_parts =  url.parse(req.url);
-    const query = url_parts.query;
-    const search_words =  [];
-    query && query.split('&').forEach(value => search_words.push(value.split('=')[1]));
-    const user =  Users.rows.filter(row => {
-       return row.user_name === search_words[0]
-    });
 
-    console.log(Users.rows);
-    if(user.length === 0){
-        return res.json({
-            loginSuccess: false,
-            message: "Authentication failed, username not found"
-        });
-    }else{
-        if(user[0].user_room !== search_words[1]){
-            return res.json({ loginSuccess: false, message: "Wrong chat room" });
-        }
-        return res.json({ loginSuccess: true});
-    }
-}
+
+
+
 const removeUser = (id) => {
     const index = users.findIndex((user) => user.id === id);
     if(index !== 1){
@@ -83,4 +95,4 @@ const getUser = (id) => users.find((user) => user.id === id);
 
 const getUsersInRoom = (room) => users.filter((user) => user.room === room);
 
-module.exports = {addUser, removeUser, getUser, getUsersInRoom, loginUser, postUser}
+module.exports = {addUser, removeUser, getUser, getUsersInRoom, loginUser, postUser, postMessage, getRoomMessages}

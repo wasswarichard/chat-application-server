@@ -1,16 +1,10 @@
 const http = require('http');
 const express = require('express');
 const socketio = require('socket.io');
-const {Pool, Client} = require('pg');
 const cors = require('cors');
 const {addUser, removeUser, getUser, getUsersInRoom } = require('./controllers/user');
 
-
-
-
 const router = require('./routes/router');
-
-
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);

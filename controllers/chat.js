@@ -116,27 +116,6 @@ const postUser = (body) => {
     });
 }
 
-const post = async (req, res) => {
-    const Users =  await pool.query('SELECT * FROM users');
-    const user =  Users.rows.filter(row => {
-        return row.user_room === req.body.room
-    });
-    if(user.length === 0 || user.length === 1){
-        if(user.length === 1 && user[0].user_name === req.body.name){
-            return res.json({  message: `User can not be created, username  ${req.body.name} already exits in  ${req.body.room} room`, code:400 })
-        }
-        await pool.query('INSERT INTO users (user_name, user_room) VALUES ($1, $2)', [req.body.name, req.body.room] );
-        return res.send({
-            username: req.body.name,
-            room : req.body.room,
-            message: `User with username  ${req.body.name} in  ${req.body.room} room has been created`,
-            code:201
-        });
-    }else{
-        return res.json({  message: `The ${req.body.room} chat room has maximum members`, code:400 })
-    }
-}
-
 const postMessage =  ({user_room, message, sent_by} ) => {
     pool.query('INSERT INTO room (user_room, message, sent_by, time_stamp) VALUES ($1, $2, $3, $4)', [user_room, message, sent_by, new Date()] );
     // pool.end();

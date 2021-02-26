@@ -1,5 +1,4 @@
 const pool = require('../config/database');
-const url  = require('url');
 
 const users = [];
 
@@ -28,6 +27,44 @@ const getRoomMessages = (user_room) => {
         }
     });
 };
+
+const login = (body) => {
+    return new Promise((resolve, reject) => {
+        try{
+            pool.query('SELECT * FROM users', (error, results) => {
+                if(error){
+                    return reject(error);
+                }
+                const user = results.rows.filter(row => {
+                    return row.user_name === body.name;
+                });
+                if(user.length === 0){
+                    return resolve({
+                        loginSuccess: false,
+                        message: "Authentication failed, username not found",
+                        code:401
+                    });
+                }else {
+                    if(user[0].user_room !== body.room){
+                        return  resolve({
+                            loginSuccess: false,
+                            message: "Wrong chat room",
+                            code:401
+                        })
+                    }
+                    return resolve({
+                        loginSuccess: true,
+                        code:200
+                    })
+                }
+            })
+
+        } catch (error) {
+            return  reject(error);
+        }
+
+    })
+}
 const loginUser = async (req, res) =>{
     const Users =  await pool.query('SELECT * FROM users');
     const user =  Users.rows.filter(row => {
@@ -84,4 +121,4 @@ const getUser = (id) => users.find((user) => user.id === id);
 
 const getUsersInRoom = (room) => users.filter((user) => user.room === room);
 
-module.exports = {addUser, removeUser, getUser, getUsersInRoom, loginUser, postUser, postMessage, getRoomMessages}
+module.exports = {addUser, removeUser, getUser, getUsersInRoom, loginUser, postUser, postMessage, getRoomMessages, login}

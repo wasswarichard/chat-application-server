@@ -1,54 +1,48 @@
 const http = require('http');
-// const express = require('express');
 const socketio = require('socket.io');
-const cors = require('cors');
-const {addUser, removeUser, getUser, getUsersInRoom ,postMessage, getRoomMessages, login} = require('./controllers/user');
-const {loginUser, postUser}  = require('./controllers/user');
-const  connect = require('connect');
-
-// const router = require('./routes/routes');
-// const app = express();
-
-
-// routes.get('/', (req, res) => {
-//     res.send('sever is up and running')
-// });
-
-// module.exports = data => {
-//     return JSON.stringify(data);
-// }
-
-
-const app = connect()
-    .use(function (req, res) {
-        res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000/");
-    });
+const {addUser, removeUser, getUser, getUsersInRoom ,postMessage, getRoomMessages, loginUser, postUser} = require('./controllers/chat');
 
 const server = http.createServer((req, res) => {
-    // response.statusCode = 200
     const { method, url, headers } = req;
-    // res.setHeader("Content-Type", "application/json");
-    // res.setHeader('Access-Control-Allow-Origin', '*');
-    // res.setHeader('Access-Control-Request-Method', '*');
-    // res.setHeader('Access-Control-Allow-Methods', '*');
-    // res.setHeader('Access-Control-Allow-Headers', '*');
+    res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin' : '*',
+        'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE'
+    });
     switch (method){
         case 'POST':
-            // console.log(req.body);
             switch (url){
                 case '/login':
                     try{
-                        console.log(req);
-
+                        req.on('data', (chuck) => {
+                            const requestData = JSON.parse(chuck.toString());
+                            loginUser(requestData)
+                                .then(response => {
+                                    return res.end(JSON.stringify(response))
+                                })
+                                .catch(error =>{
+                                    return res.end(error);
+                                })
+                        });
                         return ;
                     } catch (error){
-                        return;
+                        return res.end(JSON.stringify({error}));
                     }
                 case '/create':
                     try{
+                        req.on('data', (chunk) =>{
+                         const postData = JSON.parse(chunk.toString());
+                         postUser(postData)
+                             .then(response => {
+                                 return res.end(JSON.stringify(response))
+                             })
+                             .catch(error => {
+                                 return res.end(error);
+                             })
+                        });
                         return ;
                     } catch (error){
-                        return
+                        return res.end(JSON.stringify({error}));
                     }
             }
             return;
@@ -66,8 +60,6 @@ const server = http.createServer((req, res) => {
 
 });
 const io = socketio(server);
-
-
 io.on('connection', (socket) => {
     socket.on('join', ({name, room}, callback) => {
         const {error, user} = addUser({id: socket.id, name, room});
@@ -104,11 +96,6 @@ io.on('connection', (socket) => {
         }
     });
 });
-
-
-// app.use(express.json());
-// app.use(cors());
-// app.use(router);
 
 const port = process.env.PORT || 5000;
 server.listen(port, ()=> console.log(`Backend Server running on http://localhost:${port}`));

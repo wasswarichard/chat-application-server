@@ -1,45 +1,41 @@
 const http = require('http');
-const socketio = require('socket.io');
 const {addUser, removeUser, getUser, getUsersInRoom ,postMessage, getRoomMessages, loginUser, postUser} = require('./controllers/chat');
 
 const server = http.createServer((req, res) => {
     const { method, url, headers } = req;
-    res.writeHead(200, {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin' : '*',
-        'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE'
-    });
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    const urlString = url.split('?')[0];
+    const queryString  = new URLSearchParams(url.split('?')[1]);
+
     switch (method){
         case 'POST':
-            switch (url){
+            switch (urlString){
                 case '/login':
                     try{
-                        req.on('data', (chuck) => {
-                            const requestData = JSON.parse(chuck.toString());
-                            loginUser(requestData)
-                                .then(response => {
-                                    return res.end(JSON.stringify(response))
-                                })
-                                .catch(error =>{
-                                    return res.end(error);
-                                })
-                        });
+                        loginUser( {name : queryString.get('name'), room: queryString.get('room')})
+                            .then(response => {
+                                res.statusCode = 200;
+                                return res.end(JSON.stringify(response))
+                            })
+                            .catch(error =>{
+                                return res.end(error);
+                            });
                         return ;
                     } catch (error){
                         return res.end(JSON.stringify({error}));
                     }
                 case '/create':
                     try{
-                        req.on('data', (chunk) =>{
-                         const postData = JSON.parse(chunk.toString());
-                         postUser(postData)
-                             .then(response => {
-                                 return res.end(JSON.stringify(response))
-                             })
-                             .catch(error => {
-                                 return res.end(error);
-                             })
-                        });
+                        postUser({name : queryString.get('name'), room: queryString.get('room')})
+                            .then(response => {
+                                res.statusCode = 200;
+                                return res.end(JSON.stringify(response))
+                            })
+                            .catch(error => {
+                                return res.end(error);
+                            })
                         return ;
                     } catch (error){
                         return res.end(JSON.stringify({error}));
@@ -56,10 +52,14 @@ const server = http.createServer((req, res) => {
             res.statusCode = 400;
             return res.end(JSON.stringify({message: `Endpoint doesn't exist`}))
     }
-
-
 });
-const io = socketio(server);
+
+const io = require('socket.io')(server, {
+    cors: {
+        // origin: "http://localhost:3000"
+        origin: "*"
+    }
+});
 io.on('connection', (socket) => {
     socket.on('join', ({name, room}, callback) => {
         const {error, user} = addUser({id: socket.id, name, room});
@@ -99,3 +99,6 @@ io.on('connection', (socket) => {
 
 const port = process.env.PORT || 5000;
 server.listen(port, ()=> console.log(`Backend Server running on http://localhost:${port}`));
+process.on('uncaughtException', (error) => {
+    console.error(error.message);
+});

@@ -51,11 +51,22 @@ const loginUser = (body) => {
                             message: "Wrong chat room",
                             code:401
                         })
+                    }else {
+                        const roomUsers = users.filter(user => {return user.room === body.room});
+                        const loggedInUser = roomUsers.filter(roomUser =>{return roomUser.name === body.name});
+                        if(loggedInUser.length > 0){
+                            return  resolve({
+                                loginSuccess: false,
+                                message: "You are already logged in another browser instance",
+                                code:201
+                            })
+                        }
+                        return resolve({
+                            loginSuccess: true,
+                            code:200
+                        })
                     }
-                    return resolve({
-                        loginSuccess: true,
-                        code:200
-                    })
+
                 }
             })
 

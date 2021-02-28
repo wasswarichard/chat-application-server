@@ -102,3 +102,4 @@ server.listen(port, ()=> console.log(`Backend Server running on http://localhost
 process.on('uncaughtException', (error) => {
     console.error(error.message);
 });
+module.exports = server

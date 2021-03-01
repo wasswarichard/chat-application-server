@@ -1,6 +1,7 @@
 const pool = require('../config/database');
+const _ =  require('underscore')
 
-const users = [];
+var users = [];
 
 const addUser = ({id, name, room}) => {
     name = name.trim().toLowerCase();
@@ -35,38 +36,41 @@ const loginUser = (body) => {
                 if(error){
                     return reject(error);
                 }
-                const user = results.rows.filter(row => {
-                    return row.user_name === body.name;
+                const databaseChatroom = results.rows.filter(row => {
+                    return  row.user_room === body.room;
                 });
-                if(user.length === 0){
+                if (databaseChatroom.length === 0) {
                     return resolve({
                         loginSuccess: false,
-                        message: "Authentication failed, username not found",
+                        message: `Authentication failed, chatroom ${body.room} not found`,
                         code:401
                     });
                 }else {
-                    if(user[0].user_room !== body.room){
-                        return  resolve({
-                            loginSuccess: false,
-                            message: "Wrong chat room",
-                            code:401
-                        })
-                    }else {
-                        const roomUsers = users.filter(user => {return user.room === body.room});
-                        const loggedInUser = roomUsers.filter(roomUser =>{return roomUser.name === body.name});
-                        if(loggedInUser.length > 0){
-                            return  resolve({
-                                loginSuccess: false,
-                                message: "You are already logged in another browser instance",
-                                code:201
-                            })
-                        }
-                        return resolve({
-                            loginSuccess: true,
-                            code:200
-                        })
-                    }
-
+                   const databaseRoomUsers =  databaseChatroom.filter(row => {
+                        return row.user_name === body.name;
+                    });
+                   if (databaseRoomUsers.length === 0){
+                       return resolve ({
+                           loginSuccess: false,
+                           message: `Authentication failed, username ${body.name} not found in ${body.room} chatroom`,
+                           code:401
+                       })
+                   }else {
+                       const loggedInUser = users.filter(roomUser => {
+                           return roomUser.name === body.name && roomUser.room === body.room;
+                       });
+                       if(loggedInUser.length  > 0){
+                           return resolve({
+                               loginSuccess: false,
+                               message: "You are already logged in another browser instance",
+                               code:201
+                           });
+                       }
+                       return resolve({
+                           loginSuccess: true,
+                           code:200
+                       });
+                   }
                 }
             })
 
@@ -122,10 +126,9 @@ const postMessage =  ({user_room, message, sent_by} ) => {
 };
 
 const removeUser = (id) => {
-    const index = users.findIndex((user) => user.id === id);
-    if(index !== 1){
-        return users.splice(index, 1)[0]
-    }
+    users = _.without(users, _.findWhere(users, {
+        id: id
+    }));
 
 }
 

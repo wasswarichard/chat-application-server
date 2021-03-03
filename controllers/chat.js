@@ -126,9 +126,13 @@ const postMessage =  ({user_room, message, sent_by} ) => {
 };
 
 const removeUser = (id) => {
+    const removedUser = users.filter(user => {
+        return  user.id === id;
+    });
     users = _.without(users, _.findWhere(users, {
         id: id
     }));
+    return removedUser;
 
 }
 

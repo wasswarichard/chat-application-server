@@ -68,12 +68,11 @@ io.on('connection', (socket) => {
         getRoomMessages({user_room: user.room})
             .then(messages => {
                 socket.emit('roomData', {room: user.room, users: getUsersInRoom(user.room), messages});
-                socket.emit('message', {text: `Hi ${user.name}, welcome to the ${user.room} room `});
             })
             .catch(error => {
                 callback(error);
             });
-
+        socket.emit('message', {text: `Hi ${user.name}, welcome to the ${user.room} room `});
         socket.broadcast.to(user.room).emit('message', {text: `${user.name}, has joined`});
         callback();
     });
